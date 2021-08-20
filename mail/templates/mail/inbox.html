@@ -1,0 +1,240 @@
+{% extends "mail/layout.html" %} {% load static %} {% block body %}
+<h2>{{ request.user.email }}</h2>
+
+<button class="btn btn-sm btn-outline-primary" id="inbox">Inbox</button>
+<button class="btn btn-sm btn-outline-primary" id="compose">Compose</button>
+<button class="btn btn-sm btn-outline-primary" id="sent">Sent</button>
+<button class="btn btn-sm btn-outline-primary" id="archived">Archived</button>
+<a class="btn btn-sm btn-outline-primary" href="{% url 'logout' %}">Log Out</a>
+<hr />
+
+<div id="emails-view"></div>
+<div id="emails"></div>
+
+<div id="compose-view">
+  <h3>New Email</h3>
+  <form id="compose-form">
+    <div class="form-group">
+      From:
+      <input disabled class="form-control" value="{{ request.user.email }}" />
+    </div>
+    <div class="form-group">
+      To: <input id="compose-recipients" class="form-control" />
+    </div>
+    <div class="form-group">
+      <input class="form-control" id="compose-subject" placeholder="Subject" />
+    </div>
+    <textarea
+      class="form-control"
+      id="compose-body"
+      placeholder="Body"
+    ></textarea>
+    <input type="submit" class="btn btn-primary" id="submit" value="Send" />
+  </form>
+</div>
+{% endblock %} {% block script %}
+<!-- <script src="{% static 'mail/inbox.js' %}"></script> -->
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Use buttons to toggle between views
+    document
+      .querySelector("#inbox")
+      .addEventListener("click", () => load_mailbox("inbox"));
+    document
+      .querySelector("#sent")
+      .addEventListener("click", () => load_mailbox("sent"));
+    document
+      .querySelector("#archived")
+      .addEventListener("click", () => load_mailbox("archive"));
+    document.querySelector("#compose").addEventListener("click", compose_email);
+
+    // By default, load the inbox
+    load_mailbox("inbox");
+    console.log("loaded inbox");
+    //
+    //
+  });
+
+  function compose_email() {
+    document.querySelector("#emails").innerHTML = "";
+    // Show compose view and hide other views
+    document.querySelector("#emails-view").style.display = "none";
+    document.querySelector("#compose-view").style.display = "block";
+
+    // Clear out composition fields
+    document.querySelector("#compose-recipients").value = "";
+    document.querySelector("#compose-subject").value = "";
+    document.querySelector("#compose-body").value = "";
+
+    document
+      .querySelector("#compose-form")
+      .addEventListener("submit", send_mail);
+  }
+
+  function load_mailbox(mailbox) {
+    // Show the mailbox and hide other views
+    document.querySelector("#emails-view").style.display = "block";
+    document.querySelector("#compose-view").style.display = "none";
+
+    // Show the mailbox name
+    document.querySelector("#emails-view").innerHTML = `<h3>${
+      mailbox.charAt(0).toUpperCase() + mailbox.slice(1)
+    }</h3>`;
+
+    // Show emails
+    show_emails(mailbox);
+
+    // if (mailbox == "archive") {
+    //   document.querySelectorAll(".archive").forEach((button) =>
+    //   button.innerHTML = "Unarchive")
+    // }
+  }
+
+  function show_emails(mailbox) {
+    const mailBox = document.querySelector("#emails");
+    mailBox.innerHTML = "";
+
+    fetch(`/emails/${mailbox}`)
+      .then((response) => response.json())
+      .then((emails) => {
+        // Print emails
+        emails.forEach((element) => {
+          const email = document.createElement("div");
+          const id = element["id"];
+          const read = element["read"];
+          if (read) {
+            email.className = "read";
+          } else {
+            email.className = "email";
+          }
+
+          const sender = document.createElement("div");
+          sender.innerHTML = `From: ${element["sender"]} <a href="#" class="btn btn-sm btn-outline-primary mail-button" onClick="open_email(${id})">Open</a>`;
+          const recipients = document.createElement("div");
+          recipients.innerHTML = `To: ${element["recipients"]}`;
+          const timestamp = document.createElement("div");
+          if (mailbox == "archive") {
+            timestamp.innerHTML = `${element["timestamp"]} <a href="#" class="btn btn-sm btn-outline-primary mail-button" onClick="unarchive_email(${id})">Unarchive</a>`;
+          } else {
+            timestamp.innerHTML = `${element["timestamp"]} <a href="#" class="btn btn-sm btn-outline-primary mail-button" onClick="archive_email(${id})">Archive</a>`;
+          }
+
+          const subject = document.createElement("div");
+          subject.innerHTML = `Subject: ${element["subject"]}`;
+
+          email.append(sender, recipients, timestamp, subject);
+
+          mailBox.append(email);
+        });
+      });
+  }
+
+  function send_mail() {
+    const recipients = document.querySelector("#compose-recipients").value;
+    const subject = document.querySelector("#compose-subject").value;
+    const body = document.querySelector("#compose-body").value;
+
+    if (recipients != "" && subject != "" && body != "") {
+      fetch("/emails", {
+        method: "POST",
+        body: JSON.stringify({
+          recipients: recipients,
+          subject: subject,
+          body: body,
+        }),
+      })
+        .then((response) => response.json())
+        .then((json) => console.log(json));
+    }
+  }
+
+  function open_email(id) {
+    read_email(id)
+
+    const mailBox = document.querySelector("#emails");
+    mailBox.innerHTML = "";
+    fetch(`/emails/${id}`)
+      .then((response) => response.json())
+      .then((data) => {
+        // Print email
+        console.log(data);
+        document.querySelector(
+          "#emails-view"
+        ).innerHTML = `<h3>Mail from ${data["sender"]}</h3>`;
+        // ... do something else with email ...
+        const email = document.createElement("div");
+        email.className = "opened";
+        const components = [
+          "sender",
+          "recipients",
+          "timestamp",
+          "subject",
+          "body",
+        ];
+        const prefix = {
+          sender: "From: ",
+          recipients: "To: ",
+          timestamp: "",
+          subject: "Subject: ",
+          body: "Body: ",
+        };
+
+        components.forEach((component) => {
+          const emailElement = document.createElement("div");
+          emailElement.className = "component";
+          emailElement.innerHTML = `${prefix[component]} ${data[component]}`;
+          email.append(emailElement);
+        });
+        const back = document.createElement("span")
+        back.innerHTML = `<a href="#" class="btn btn-sm btn-outline-primary mail-button" onClick="load_mailbox("inbox");">Back</a>`
+        const unread = document.createElement("span")
+        unread.innerHTML = `<a href="#" class="btn btn-sm btn-outline-primary mail-button" onClick="unread_email(${id})">Unread</a>`
+        const archive = document.createElement("span")
+        if (data["archived"]) {
+            archive.innerHTML = `<a href="#" class="btn btn-sm btn-outline-primary mail-button" onClick="unarchive_email(${id})">Unarchive</a>`;
+          } else {
+            archive.innerHTML = `<a href="#" class="btn btn-sm btn-outline-primary mail-button" onClick="archive_email(${id})">Archive</a>`;
+          }
+
+        mailBox.append(email, back, unread, archive);
+      });
+  }
+
+  function archive_email(id) {
+    fetch(`/emails/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        archived: true,
+      }),
+    });
+  }
+
+  function unarchive_email(id) {
+    fetch(`/emails/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        archived: false,
+      }),
+    });
+  }
+
+  function read_email(id) {
+    fetch(`/emails/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        read: true,
+      }),
+    });
+  }
+
+  function unread_email(id) {
+    fetch(`/emails/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        read: false,
+      }),
+    });
+  }
+</script>
+{% endblock %}

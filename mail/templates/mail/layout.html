@@ -1,0 +1,89 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>{% block title %}Mail{% endblock %}</title>
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+      integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" href="{% static 'mail/styles.css' %}" />
+    <style>
+      .email {
+        background: rgb(224, 244, 255);
+        color: #007bff;
+        padding: 10px;
+        margin-bottom: 20px;
+        height: 125px;
+        text-align: left;
+        width: 100%;
+      }
+      .read {
+        background: rgb(230, 230, 230);
+        color: #007bff;
+        padding: 10px;
+        margin-bottom: 20px;
+        height: 125px;
+        text-align: left;
+        width: 100%;
+      }
+
+      .opened {
+        background: rgb(224, 244, 255);
+        color: #007bff;
+        padding: 10px;
+        margin-bottom: 20px;
+        height: auto;
+        text-align: left;
+        width: 100%;
+      }
+
+      .component {
+        padding-bottom: 10px;
+      }
+
+      /* .email:hover {
+        background: #007bff;
+        color: white;
+      } */
+
+      .mail-button {
+        float: right;
+        position: relative;
+        right: 10px;
+        margin-right: 20px;
+      }
+
+      @keyframes hide {
+        0% {
+          opacity: 1;
+          margin-bottom: 10px;
+          padding: 20px;
+          height: 100%;
+          line-height: 100%;
+        }
+        75% {
+          opacity: 0;
+          margin-bottom: 10px;
+          padding: 20px;
+          height: 100%;
+          line-height: 100%;
+        }
+        100% {
+          opacity: 0;
+          margin-bottom: 0;
+          padding: 0;
+          height: 0;
+          line-height: 0;
+        }
+      }
+    </style>
+    {% block script %} {% endblock %}
+  </head>
+  <body>
+    <div class="container">{% block body %} {% endblock %}</div>
+  </body>
+</html>
